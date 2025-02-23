@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stok Barang</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.0/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/2.2.1/css/dataTables.bootstrap5.css">
+    <script src="https://code.jquery.com/jquery-3.7.1.js"></script>
+    <script src="https://cdn.datatables.net/2.2.1/js/dataTables.js"></script>
+    <script src="https://cdn.datatables.net/2.2.1/js/dataTables.bootstrap5.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        /* Wrapper layout */
+        .wrapper {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 200px; /* Lebar sidebar tetap */
+            background-color: #343a40;
+            color: #fff;
+            flex-shrink: 0;
+        }
+
+        .sidebar.hidden {
+            width: 0;
+            overflow: hidden;
+        }
+
+        .sidebar ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .sidebar ul li {
+            padding: 15px;
+            border-bottom: 1px solid #495057;
+        }
+
+        .sidebar ul li a {
+            color: #fff;
+            text-decoration: none;
+            display: block;
+        }
+
+        .sidebar ul li a:hover {
+            background-color: #495057;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            transition: margin-left 0.3s ease;
+        }
+
+        .main-content.expanded {
+            margin-left: 0;
+        }
+
+        .main-content.collapsed {
+            margin-left: 10px;
+        }
+
+        /* Navbar */
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 1000;
+        }
+
+        .form-reset {
+            margin-top: 31px;
+        }
+    </style>
+</head>
+<body>
+<div class="wrapper">
+    <nav class="sidebar" id="sidebar">
+        <ul class="mt-5 pt-2">
+            <li><a href="/dashboard-kasir">Dashboard</a></li>
+            <li><a href="/transaksi-page">Transaksi</a></li>
+            <li><a href="/stok-page">Stok Barang</a></li>
+            <li><a href="/laporan-page">Laporan Penjualan</a></li>
+            <li><a href="/pengaturan-page">Pengaturan</a></li>
+        </ul>
+    </nav>
+
+    <div class="main-content expanded py-5" id="mainContent">
+        <header class="navbar navbar-expand-lg navbar-dark bg-primary">
+            <div class="container-fluid">
+                <button class="btn btn-light btn-sm me-2" id="toggleSidebar">☰</button>
+                <a class="navbar-brand" href="#">POS Kasir</a>
+                <div class="d-flex ms-auto align-items-center">
+                    <input type="text" class="form-control bg-transparent border-0 text-white" id="tanggal" readonly>
+                </div>
+                <div class="d-flex ms-auto align-items-center">
+                    <span class="text-white me-3" style="display: none">Kasir: <b th:text="${kasirName}" style="display: none"></b></span>
+                    <button class="btn btn-light btn-sm" onclick="location.href='/logout'">Logout</button>
+                </div>
+            </div>
+        </header>
+
+        <div class="container-fluid mt-3">
+                <div class="card-body">
+                    <div class="container-fluid mt-3">
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="d-flex justify-content-between mb-3">
+                                    <h3 class=""> Data Produk</h3>
+                                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addProductModal"><i class="bi bi-plus-circle"></i> Tambah Produk</button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <table id="example" class="table table-striped table-bordered">
+                                    <thead>
+                                    <tr>
+                                        <th>No.</th>
+                                        <th>Kode Produk</th>
+                                        <th>Nama Produk</th>
+                                        <th>Stock</th>
+                                        <th>Harga Modal</th>
+                                        <th>Harga Jual</th>
+                                        <th>Opsi</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    <tr th:each="barang, index : ${barangList}">
+                                        <td th:text="${index.index + 1}"></td>
+                                        <td th:text="${barang.kodeProduk}"></td>
+                                        <td th:text="${barang.namaProduk}"></td>
+                                        <td th:text="${barang.stok}"></td>
+                                        <td th:text="'Rp. ' + ${#numbers.formatInteger(barang.hargaModal, 0, 'COMMA')}"></td>
+                                        <td th:text="'Rp. ' + ${#numbers.formatInteger(barang.hargaJual, 0, 'COMMA')}"></td>
+                                        <td>
+                                            <button class="btn btn-sm btn-primary edit-btn" th:data-id="${barang.id}">Edit</button>
+                                            <button class="btn btn-sm btn-danger delete-btn" th:data-id="${barang.id}">Hapus</button>
+                                        </td>
+                                    </tr>
+                                    </tbody>
+                                </table>
+                                <div class="modal fade" id="addProductModal" tabindex="-1" aria-labelledby="addProductModalLabel" aria-hidden="true">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title" id="addProductModalLabel">Tambah Produk</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <form id="addProductForm" action="/tambah-barang" method="post">
+                                                    <div class="mb-3">
+                                                        <label for="kodeProduk" class="form-label">Kode Produk</label>
+                                                        <input type="text" class="form-control" id="kodeProduk" required readonly>
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label for="namaProduk" class="form-label">Nama Produk</label>
+                                                        <input type="text" class="form-control" id="namaProduk" required>
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label for="hargaModal" class="form-label">Harga Modal</label>
+                                                        <input type="number" class="form-control" id="hargaModal" required>
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label for="hargaJual" class="form-label">Harga Jual</label>
+                                                        <input type="number" class="form-control" id="hargaJual" required>
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label for="stok" class="form-label">Stok</label>
+                                                        <input type="number" class="form-control" id="stok" required>
+                                                    </div>
+                                                    <button type="submit" class="btn btn-primary" id="tambahBarangBtn">Simpan</button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title" id="editModalLabel">Edit Barang</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <form id="editForm">
+                                                    <input type="hidden" id="edit-id">
+                                                    <div class="mb-3">
+                                                        <label for="edit-nama" class="form-label">Nama Barang</label>
+                                                        <input type="text" class="form-control" id="edit-nama">
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label for="edit-hargaModal" class="form-label">Harga Modal</label>
+                                                        <input type="number" class="form-control" id="edit-hargaModal">
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label for="edit-hargaJual" class="form-label">Harga Jual</label>
+                                                        <input type="number" class="form-control" id="edit-hargaJual">
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label for="edit-stok" class="form-label">Stok</label>
+                                                        <input type="number" class="form-control" id="edit-stok">
+                                                    </div>
+                                                    <button type="submit" class="btn btn-primary">Simpan Perubahan</button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    new DataTable('#example');
+
+    document.addEventListener("DOMContentLoaded", () => {
+        const toggleSidebar = document.getElementById('toggleSidebar');
+        const sidebar = document.getElementById('sidebar');
+        const mainContent = document.getElementById('mainContent');
+
+        toggleSidebar.addEventListener('click', () => {
+            if (sidebar.classList.contains('hidden')) {
+                sidebar.classList.remove('hidden');
+                mainContent.classList.remove('expanded');
+                mainContent.classList.add('collapsed');
+            } else {
+                sidebar.classList.add('hidden');
+                mainContent.classList.remove('collapsed');
+                mainContent.classList.add('expanded');
+            }
+        });
+
+        function updateDateTime() {
+            const tanggalInput = document.getElementById('tanggal');
+            const now = new Date();
+
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+
+            tanggalInput.value = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+        }
+
+        updateDateTime();
+        setInterval(updateDateTime, 1000);
+    });
+
+    $(document).ready(function () {
+        $('#addProductForm').on('submit', function (e) {
+            e.preventDefault();
+
+            const formData = {
+                kodeProduk: $('#kodeProduk').val(),
+                namaProduk: $('#namaProduk').val(),
+                hargaModal: $('#hargaModal').val(),
+                hargaJual: $('#hargaJual').val(),
+                stok: $('#stok').val()
+            };
+
+            $.ajax({
+                url: '/tambah-barang',
+                type: 'POST',
+                data: formData,
+                success: function (response) {
+                    $('#addProductModal').modal('hide');
+                    location.reload();
+                },
+                error: function () {
+                    alert('Gagal menambahkan produk!');
+                }
+            });
+        });
+
+        $(document).ready(function () {
+            $(".delete-btn").click(function () {
+                let id = $(this).data("id");
+                if (confirm("Apakah Anda yakin ingin menghapus produk ini?")) {
+                    $.ajax({
+                        url: "/hapus-barang/" + id,
+                        type: "DELETE",
+                        success: function (response) {
+                            alert("Produk berhasil dihapus!");
+                            location.reload();
+                        },
+                        error: function (xhr, status, error) {
+                            alert("Gagal menghapus produk: " + xhr.responseText);
+                        }
+                    });
+                }
+            });
+        });
+
+
+
+            let id;
+            $(".edit-btn").click(function () {
+                id = $(this).data('id');
+                $('#edit-id').val(id);
+
+                $.ajax({
+                    url: "/" + id,
+                    type: "GET",
+                    success: function (data) {
+                        $("#edit-nama").val(data.namaProduk);
+                        $("#edit-hargaModal").val(data.hargaModal);
+                        $("#edit-hargaJual").val(data.hargaJual);
+                        $("#edit-stok").val(data.stok);
+                        $("#editModal").modal("show");
+                    },
+                    error: function () {
+                        alert("Gagal mengambil data barang.");
+                    }
+                });
+            });
+
+            $("#editForm").submit(function (e) {
+                e.preventDefault();
+
+                let nama = $("#edit-nama").val();
+                let hargaModal = $("#edit-hargaModal").val();
+                let hargaJual = $("#edit-hargaJual").val();
+                let stok = $("#edit-stok").val();
+
+                $.ajax({
+                    url: "/update/" + id,
+                    type: "PUT",
+                    contentType: "application/json",
+                    data: JSON.stringify({ id: id, namaProduk: nama, hargaModal: hargaModal, hargaJual : hargaJual, stok : stok }),
+                    success: function () {
+                        alert("Barang berhasil diperbarui!");
+                        location.reload();
+                    },
+                    error: function () {
+                        alert("Gagal memperbarui barang.");
+                    }
+                });
+            });
+
+
+        function generateKodeBarang() {
+            fetch('/next-kode')
+                .then(response => response.text())
+                .then(kodeProduk => {
+                document.getElementById("kodeProduk").value = kodeProduk;
+            })
+                .catch(error => console.error('Error fetching kode barang:', error));
+        }
+
+        document.getElementById("tambahBarangBtn").addEventListener("click", function() {
+            generateKodeBarang();
+        });
+
+        $('#addProductModal').on('show.bs.modal', function () {
+            $.ajax({
+                url: '/next-kode',
+                type: 'GET',
+                success: function (data) {
+                    $('#kodeProduk').val(data.kodeProduk);
+                },
+                error: function () {
+                    alert('Gagal mengambil kode produk!');
+                }
+            });
+        });
+
+    });
+
+
+
+</script>
+
+</body>
+</html>

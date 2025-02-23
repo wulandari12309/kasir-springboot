@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transaksi</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        /* Wrapper layout */
+        .wrapper {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 200px; /* Lebar sidebar tetap */
+            background-color: #343a40;
+            color: #fff;
+            flex-shrink: 0;
+        }
+
+        .sidebar.hidden {
+            width: 0;
+            overflow: hidden;
+        }
+
+        .sidebar ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .sidebar ul li {
+            padding: 15px;
+            border-bottom: 1px solid #495057;
+        }
+
+        .sidebar ul li a {
+            color: #fff;
+            text-decoration: none;
+            display: block;
+        }
+
+        .sidebar ul li a:hover {
+            background-color: #495057;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            transition: margin-left 0.3s ease;
+        }
+
+        .main-content.expanded {
+            margin-left: 0;
+        }
+
+        .main-content.collapsed {
+            margin-left: 10px;
+        }
+
+        /* Navbar */
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 1000;
+        }
+
+        .form-reset {
+            margin-top: 31px;
+        }
+    </style>
+</head>
+<body>
+<div class="wrapper">
+    <nav class="sidebar" id="sidebar">
+        <ul class="mt-5 pt-2">
+            <li><a href="/dashboard-kasir">Dashboard</a></li>
+            <li><a href="/transaksi-page">Transaksi</a></li>
+            <li><a href="/stok-page">Stok Barang</a></li>
+            <li><a href="/laporan-page">Laporan Penjualan</a></li>
+            <li><a href="/pengaturan-page">Pengaturan</a></li>
+        </ul>
+    </nav>
+
+    <div class="main-content expanded py-5" id="mainContent">
+        <header class="navbar navbar-expand-lg navbar-dark bg-primary">
+            <div class="container-fluid">
+                <button class="btn btn-light btn-sm me-2" id="toggleSidebar">☰</button>
+                <a class="navbar-brand" href="#">POS Kasir</a>
+                <div class="d-flex ms-auto align-items-center">
+                    <input type="text" class="form-control bg-transparent border-0 text-white" id="tanggal" readonly>
+                </div>
+                <div class="d-flex ms-auto align-items-center">
+                    <span class="text-white me-3" style="display: none">Kasir: <b th:text="${kasirName}" style="display: none"></b></span>
+                    <button class="btn btn-light btn-sm" onclick="location.href='/logout'">Logout</button>
+                </div>
+            </div>
+        </header>
+
+        <div class="container-fluid pt-4">
+            <main class="container-fluid py-1">
+                <div class="row">
+                    <div class=" mb-3" style="display: none">
+                        <div class="card p-2">
+                            <div class="mb-3" style="display: none">
+                                <label for="no-nota" class="form-label">No. Nota</label>
+                                <input type="text" class="form-control" id="no-nota" readonly>
+                            </div>
+                            <div class="mb-3">
+                                <label for="tanggal" class="form-label">Tanggal</label>
+                            </div>
+                            <div class="mb-3">
+                                <label for="namaKasir" class="form-label">Kasir</label>
+                                <input type="text" class="form-control" id="namaKasir" name="namaKasir" th:value="${kasirName}" readonly>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-12">
+                        <div class="card p-2">
+                            <form id="form-transaksi" class="d-flex flex-wrap align-items-end gap-2">
+                                <div class="col-md-2">
+                                    <label for="namaProduk" class="form-label">Nama Produk</label>
+                                    <input type="text" class="form-control w-100" id="namaProduk" oninput="searchBarang()" list="productSuggestions">
+                                    <datalist id="productSuggestions"></datalist>
+                                </div>
+                                <div class="col-md-2">
+                                    <label for="kodeProduk" class="form-label">Kode Produk</label>
+                                    <input type="text" class="form-control w-100" id="kodeProduk" readonly>
+                                </div>
+                                <div class="col-md-1">
+                                    <label for="hargaJual" class="form-label">Harga</label>
+                                    <input type="text" class="form-control w-100" id="hargaJual" readonly>
+                                </div>
+                                <div class="col-md-1">
+                                    <label for="stok" class="form-label">Stock</label>
+                                    <input type="text" class="form-control w-100" id="stok" readonly>
+                                </div>
+                                <div class="col-md-1">
+                                    <label for="qty" class="form-label">Qty</label>
+                                    <input type="number" class="form-control w-100" id="qty" value="0" oninput="updateSubtotal()">
+                                </div>
+                                <div class="col-md-2">
+                                    <label for="subtotal" class="form-label">Subtotal</label>
+                                    <input type="number" class="form-control w-100" id="subtotal" placeholder="Subtotal" readonly>
+                                </div>
+                                <div class="col-md-2 d-flex gap-2">
+                                    <button type="reset" class="btn btn-danger">Reset</button>
+                                    <button type="submit" class="btn btn-success">Submit</button>
+                                </div>
+                            </form>
+                            <table class="table table-bordered mt-3">
+                                <thead>
+                                <tr>
+                                    <th>No</th>
+                                    <th>Kode Produk</th>
+                                    <th>Nama Produk</th>
+                                    <th>Harga</th>
+                                    <th>Qty</th>
+                                    <th>Subtotal</th>
+                                    <th>Opsi</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr>
+                                    <td colspan="7" class="text-center">No data available in table</td>
+                                </tr>
+                                </tbody>
+                            </table>
+                            <div class="mb-3">
+                                    <div class="border bg-secondary p-3 text-end opacity-50 text-white fw-bold fs-4">
+                                        Rp. 0
+                                    </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-4">
+                                    <label for="pembayaran" class="form-label">Pembayaran</label>
+                                    <input type="number" id="pembayaran" class="form-control" placeholder="Masukkan jumlah pembayaran">
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="kembalian" class="form-label">Kembalian</label>
+                                    <input type="number" class="form-control" id="kembalian" readonly>
+                                </div>
+                            </div>
+                            <div class="d-flex justify-content-end gap-2">
+                                <button class="btn btn-secondary">Cetak</button>
+                                <button type="submit" class="btn btn-primary" id="btnSimpan">Simpan</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const toggleSidebar = document.getElementById('toggleSidebar');
+        const sidebar = document.getElementById('sidebar');
+        const mainContent = document.getElementById('mainContent');
+
+        toggleSidebar.addEventListener('click', () => {
+            if (sidebar.classList.contains('hidden')) {
+                sidebar.classList.remove('hidden');
+                mainContent.classList.remove('expanded');
+                mainContent.classList.add('collapsed');
+            } else {
+                sidebar.classList.add('hidden');
+                mainContent.classList.remove('collapsed');
+                mainContent.classList.add('expanded');
+            }
+        });
+
+        function updateDateTime() {
+            const tanggalInput = document.getElementById('tanggal');
+            const now = new Date();
+
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+
+            tanggalInput.value = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+        }
+
+        updateDateTime();
+        setInterval(updateDateTime, 1000);
+
+        const notaInput = document.getElementById("no-nota");
+        const form = document.getElementById("form-transaksi");
+
+        function generateNotaNumber() {
+            const now = new Date();
+            const day = String(now.getDate()).padStart(2, "0");
+            const month = String(now.getMonth() + 1).padStart(2, "0");
+            const year = String(now.getFullYear()).slice(-2);
+
+            let lastNotaNumber = parseInt(localStorage.getItem("lastNotaNumber")) || 0;
+            lastNotaNumber += 1;
+            localStorage.setItem("lastNotaNumber", lastNotaNumber);
+
+            const notaNumber = `WK${day}${month}${year}${String(lastNotaNumber).padStart(3, "0")}`;
+            notaInput.value = notaNumber;
+        }
+
+        generateNotaNumber();
+
+        const formTransaksi = document.getElementById("form-transaksi");
+        const tbody = document.querySelector("table tbody");
+        const totalElement = document.querySelector(".border.bg-secondary");
+        const pembayaranInput = document.getElementById("pembayaran");
+        const kembalianElement = document.getElementById("kembalian");
+        let nomorUrut = 1;
+
+        formTransaksi.addEventListener("submit", function (event) {
+            event.preventDefault();
+            const kodeProduk = document.getElementById("kodeProduk").value;
+            const namaProduk = document.getElementById("namaProduk").value;
+            const hargaJual = document.getElementById("hargaJual").value;
+            const qty = document.getElementById("qty").value;
+            const subtotal = document.getElementById("subtotal").value;
+
+            if (!qty || qty <= 0) {
+                alert("Masukkan jumlah yang valid!");
+                return;
+            }
+
+            if (tbody.children.length === 1 && tbody.children[0].children.length === 1) {
+                tbody.innerHTML = "";
+            }
+
+            const row = document.createElement("tr");
+
+            if (!barangId) {
+                console.error("Barang ID tidak ditemukan!");
+                alert("Barang ID tidak ditemukan. Silakan pilih produk dengan benar.");
+                return;
+            }
+
+            row.setAttribute("data-barang-id", barangId);
+
+            row.innerHTML = `
+                <td>${nomorUrut++}</td>
+                <td>${kodeProduk}</td>
+                <td>${namaProduk}</td>
+                <td>${hargaJual}</td>
+                <td>${qty}</td>
+                <td class="subtotal">${subtotal}</td>
+                <td><button class="btn btn-danger btn-sm" onclick="hapusBaris(this)">Hapus</button></td>
+            `;
+
+            tbody.appendChild(row);
+            console.log(`Produk ditambahkan: barangId=${barangId}, Kode=${kodeProduk}, Qty=${qty}`);
+
+            updateTotal();
+
+            formTransaksi.reset();
+            document.getElementById("subtotal").value = "";
+        });
+
+        function updateTotal() {
+            let total = 0;
+            document.querySelectorAll(".subtotal").forEach(sub => {
+                total += parseFloat(sub.textContent) || 0;
+            });
+
+            totalElement.textContent = `Rp. ${total.toLocaleString()}`;
+            const pembayaran = parseFloat(pembayaranInput.value) || 0;
+            const kembalian = pembayaran - total;
+            kembalianElement.value = kembalian >= 0 ? kembalian : 0;
+        }
+
+        window.hapusBaris = function (button) {
+            const row = button.parentElement.parentElement;
+            row.remove();
+            updateTotal();
+        };
+
+        pembayaranInput.addEventListener("input", function() {
+            updateTotal();
+        });
+
+        window.hapusBaris = function (button) {
+            const row = button.parentElement.parentElement;
+            row.remove();
+            updateTotal();
+        };
+
+    });
+
+    function simpanTransaksi() {
+        const transaksi = {
+            noNota: document.getElementById("no-nota").value,
+            tanggal: document.getElementById("tanggal").value,
+            kasir: document.getElementById("namaKasir").value,
+            kodeProduk: document.getElementById("kodeProduk").value,
+            namaProduk: document.getElementById("namaProduk").value,
+            harga: parseInt(document.getElementById("hargaJual").value),
+            qty: parseInt(document.getElementById("qty").value),
+            subtotal: parseInt(document.getElementById("subtotal").value),
+            pembayaran: parseInt(document.getElementById("pembayaran").value),
+            kembalian: parseInt(document.getElementById("kembalian").value)
+        };
+    }
+
+    function searchBarang() {
+        const keyword = document.getElementById('namaProduk').value;
+        console.log("Searching for:", keyword);
+        fetch(`/search-barang?keyword=${encodeURIComponent(keyword)}`)
+            .then(response => response.json())
+            .then(data => {
+            console.log("Data received:", data);
+            const datalist = document.getElementById('productSuggestions');
+            datalist.innerHTML = '';
+
+            data.forEach(barang => {
+                const option = document.createElement('option');
+                option.value = barang.namaProduk;
+                option.dataset.barangId = barang.id; // Simpan barangId
+                option.dataset.kodeProduk = barang.kodeProduk;
+                option.dataset.hargaJual = barang.hargaJual;
+                option.dataset.stok = barang.stok;
+                datalist.appendChild(option);
+            });
+        })
+            .catch(error => {
+            console.error('Error:', error);
+        });
+    }
+
+
+    document.getElementById('namaProduk').addEventListener('input', function() {
+        const selectedOption = document.querySelector(`#productSuggestions option[value="${this.value}"]`);
+
+        if (selectedOption) {
+            barangId = selectedOption.dataset.barangId; // Ambil barangId dari opsi yang dipilih
+            const kodeProduk = selectedOption.dataset.kodeProduk;
+            const hargaJual = selectedOption.dataset.hargaJual;
+            const stok = selectedOption.dataset.stok;
+
+            document.getElementById('kodeProduk').value = kodeProduk;
+            document.getElementById('hargaJual').value = hargaJual;
+            document.getElementById('stok').value = stok;
+        }
+    });
+
+
+    function updateSubtotal() {
+        const hargaJual = parseFloat(document.getElementById("hargaJual").value) || 0;
+        const qty = parseFloat(document.getElementById("qty").value) || 0;
+        const subtotal = hargaJual * qty;
+        document.getElementById("subtotal").value = parseInt(subtotal, 10) || 0;
+    }
+
+    document.getElementById("btnSimpan").addEventListener("click", function () {
+        try {
+            let transaksi = {
+                namaKasir: document.getElementById("namaKasir")?.value || "Kasir Tidak Diketahui",
+                pembayaran: parseFloat(document.getElementById("pembayaran")?.value) || 0,
+                kembalian: parseFloat(document.getElementById("kembalian")?.value) || 0,
+                totalTransaksi: parseFloat(document.querySelector(".border.bg-secondary")?.innerText.replace("Rp. ", "").replace(",", "")) || 0,
+                detailTransaksiList: []
+            };
+
+            document.querySelectorAll("tbody tr").forEach((row) => {
+                let barangId = row.getAttribute("data-barang-id");
+                let kodeProduk = row.children[1]?.innerText.trim();
+                let namaProduk = row.children[2]?.innerText.trim();
+                let harga = parseFloat(row.children[3]?.innerText.replace(",", "").trim()) || 0;
+                let qty = parseInt(row.children[4]?.innerText.trim()) || 0;
+                let subtotal = parseFloat(row.children[5]?.innerText.replace(",", "").trim()) || 0;
+
+                console.log(`Barang ID: ${barangId}, Kode: ${kodeProduk}, Qty: ${qty}, Harga: ${harga}, Subtotal: ${subtotal}`);
+
+                if (barangId && kodeProduk && namaProduk && harga > 0 && qty > 0 && subtotal > 0) {
+                    transaksi.detailTransaksiList.push({
+                        barangId: parseInt(barangId), // Kirim barangId ke backend
+                        kodeProduk: kodeProduk,
+                        namaProduk: namaProduk,
+                        harga: harga,
+                        qty: qty,
+                        subtotal: subtotal
+                    });
+                }
+            });
+            console.log("Data transaksi sebelum dikirim:", JSON.stringify(transaksi, null, 2));
+
+            fetch("http://localhost:8080/simpan-transaksi", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(transaksi)
+            })
+                .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.text();
+            })
+                .then(text => {
+                try {
+                    const data = JSON.parse(text);
+                    console.log("Transaksi disimpan:", data);
+                    alert("Transaksi berhasil disimpan!");
+
+                    document.querySelector("tbody").innerHTML = "";
+                    nomorUrut = 1;
+                    document.querySelector('.border.bg-secondary').textContent = '';
+                    document.getElementById("pembayaran").value = "";
+                    document.getElementById("kembalian").value = "";
+                    updateTotal();
+                    generateNotaNumber();
+                } catch (error) {
+                    console.log("Response bukan JSON:", text);
+                }
+            })
+                .catch(error => {
+                console.error("Error:", error);
+                alert("Terjadi kesalahan saat menyimpan transaksi.");
+            });
+
+        } catch (error) {
+            console.error("Error utama:", error);
+            alert("Terjadi kesalahan dalam proses transaksi.");
+        }
+    });
+
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
